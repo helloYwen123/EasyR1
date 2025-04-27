@@ -46,7 +46,7 @@ class Runner:
             trust_remote_code=config.worker.actor.model.trust_remote_code,
             use_fast=True,
         )
-
+        # 多机/多卡资源池分配。
         # define worker classes
         ray_worker_group_cls = RayWorkerGroup
         role_worker_mapping = {
@@ -113,7 +113,7 @@ def main():
         }
         ray.init(runtime_env=runtime_env)
 
-    runner = Runner.remote()
+    runner = Runner.remote() # 远程的一个actor 也就是model
     ray.get(runner.run.remote(ppo_config))
 
 

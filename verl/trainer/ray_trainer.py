@@ -111,9 +111,8 @@ class ResourcePoolManager:
         if gpus_available < gpus_required:
             raise ValueError(f"Total available GPUs {gpus_available} is less than total desired GPUs {gpus_required}.")
 
-
 def apply_kl_penalty(data: DataProto, kl_ctrl: core_algos.KLController, kl_penalty="kl"):
-    token_level_scores = data.batch["token_level_scores"]
+    token_level_scores = data.batch["token_level_scores"] # overall scores
     batch_size = data.batch.batch_size[0]
     response_mask = data.batch["response_mask"]
 
@@ -130,7 +129,6 @@ def apply_kl_penalty(data: DataProto, kl_ctrl: core_algos.KLController, kl_penal
     # According to https://github.com/huggingface/trl/blob/v0.11.0/trl/trainer/ppo_trainer.py#L880
     kl_ctrl.update(current_kl=current_kl, n_steps=batch_size)
     return data, metrics
-
 
 def compute_advantage(data: DataProto, adv_estimator: AdvantageEstimator, gamma: float = 1.0, lam: float = 1.0):
     token_level_rewards = data.batch["token_level_rewards"]
@@ -305,6 +303,7 @@ class RayPPOTrainer:
 
             test_gen_batch.meta_info = self.config.worker.rollout.val_override_config
             test_gen_batch, pad_size = pad_dataproto_to_divisor(test_gen_batch, self.actor_rollout_wg.world_size)
+            
             test_output_gen_batch = self.actor_rollout_wg.generate_sequences(test_gen_batch)
             test_output_gen_batch = unpad_dataproto(test_output_gen_batch, pad_size=pad_size)
             print("validation generation end")
@@ -314,36 +313,41 @@ class RayPPOTrainer:
             output_texts = [self.tokenizer.decode(ids, skip_special_tokens=True) for ids in output_ids]
             sample_outputs.extend(output_texts)
             sample_labels.extend(test_batch.non_tensor_batch["ground_truth"].tolist())
+            # 结合原先的 test_batch 和 test_output_gen_batch
             test_batch = test_batch.union(test_output_gen_batch)
-
+            # test_batch (现在): DataProto 对象
+            # - 估计内容: 原始的 input_ids/mask, 生成的 responses/response_mask, non_tensor 的 ground_truth
             # evaluate using reward_function
             reward_tensor, reward_metrics = self.val_reward_fn(test_batch)
 
             # Store scores
-            scores = reward_tensor.sum(-1).cpu().tolist()
+            scores = reward_tensor.sum(-1).cpu().tolist() # 每个512为一个reward_tensor 然后求和
             sample_scores.extend(scores)
 
-            reward_tensor_lst.append(reward_tensor)
+            reward_tensor_lst.append(reward_tensor) # 4个512在list里
             for key, value in reward_metrics.items():
                 reward_metrics_lst[key].extend(value)
 
         self._maybe_log_val_generations(sample_inputs, sample_outputs, sample_labels, sample_scores)
-        reward_score = torch.cat(reward_tensor_lst, dim=0).sum(-1).mean().item()
+        reward_score = torch.cat(reward_tensor_lst, dim=0).sum(-1).mean().item() 
+
         val_reward_metrics = {f"val/{key}_reward": value for key, value in reduce_metrics(reward_metrics_lst).items()}
         return {"val/reward_score": reward_score, **val_reward_metrics}
 
     def init_workers(self) -> None:
         """Init resource pool and worker group"""
         self.resource_pool_manager.create_resource_pool()
+        # 定义哪个资源池 上需要运行 哪些类型 的 Worker
         self.resource_pool_to_cls = {pool: {} for pool in self.resource_pool_manager.resource_pool_dict.values()}
-
+        
         # create actor and rollout
+        # hybrid engine means actor and rolllout processes in one resource pool
         if self.hybrid_engine:
             resource_pool = self.resource_pool_manager.get_resource_pool(Role.ActorRollout)
-            actor_rollout_cls = RayClassWithInitArgs(
+            actor_rollout_cls = RayClassWithInitArgs( # 把真用到的worker 类和 初始化参数都打包
                 cls=self.role_worker_mapping[Role.ActorRollout], config=self.config.worker, role="actor_rollout"
             )
-            self.resource_pool_to_cls[resource_pool]["actor_rollout"] = actor_rollout_cls
+            self.resource_pool_to_cls[resource_pool]["actor_rollout"] = actor_rollout_cls # resource pool 对象： role ： worker
         else:
             raise NotImplementedError
 
@@ -378,14 +382,22 @@ class RayPPOTrainer:
         # See https://github.com/volcengine/verl/blob/master/examples/ray/tutorial.ipynb for more information.
         all_wg: Dict[str, FSDPWorker] = {}
         self.wg_dicts = []
+        
+        # resource_pool: 当前处理的 RayResourcePool 对象。
+        # class_dict: 一个字典，包含了所有需要在这个 resource_pool 上运行的 Worker 的打包配置。例如，如果 ActorRollout 和 Critic 被配置在同一个资源池，
+        # class_dict 可能就是 {"actor_rollout": actor_rollout_cls, "critic": critic_cls}
         for resource_pool, class_dict in self.resource_pool_to_cls.items():
             worker_dict_cls = create_colocated_worker_cls(class_dict=class_dict)
             wg_dict = self.ray_worker_group_cls(resource_pool=resource_pool, ray_cls_with_init=worker_dict_cls)
             spawn_wg = wg_dict.spawn(prefix_set=class_dict.keys())
+            # 逻辑 Worker 名称 到 Ray Actor 句柄 (handle) 或代理对象的映射
+            # 句柄 实际触发 Ray 在指定的 resource_pool 上创建并启动 Actor 进程
             all_wg.update(spawn_wg)
             # keep the referece of WorkerDict to support ray >= 2.31. Ref: https://github.com/ray-project/ray/pull/45699
             self.wg_dicts.append(wg_dict)
-
+            
+        # all_wg 中获取 Critic Worker 的句柄，并存到 self.critic_wg 属性中
+        # 通过句柄调用远程 cls 上的 init_model 方法
         if self.use_critic:
             self.critic_wg = all_wg["critic"]
             self.critic_wg.init_model()
@@ -410,7 +422,7 @@ class RayPPOTrainer:
         folder_path = os.path.join(self.config.trainer.save_checkpoint_path, f"global_step_{self.global_step}")
         actor_path = os.path.join(folder_path, "actor")
         self.actor_rollout_wg.save_checkpoint(actor_path)
-
+        # 通过 远程句柄 (self.actor_rollout_wg) 调用其 save_checkpoint 方法。这个调用会被 Ray 发送到所有属于该 Group 的远程 Worker 进程。
         if self.use_critic:
             critic_path = os.path.join(folder_path, "critic")
             self.critic_wg.save_checkpoint(critic_path)
@@ -444,8 +456,9 @@ class RayPPOTrainer:
             self.train_dataloader.load_state_dict(dataloader_state_dict)
         else:
             print(f"No dataloader state found at {dataloader_path}, will start from scratch.")
-
+    
     def _balance_batch(self, batch: DataProto, metrics: Dict[str, Any], logging_prefix: str = "global_seqlen") -> None:
+        # 重新排列批次 (batch) 内的数据顺序，以实现负载均衡，特别是平衡每个 Worker 处理的总 Token 数量。
         """Reorder the data on single controller such that each dp rank gets similar total tokens"""
         attention_mask = batch.batch["attention_mask"]
         batch_size = attention_mask.shape[0]
@@ -509,7 +522,7 @@ class RayPPOTrainer:
                     with _timer("gen", timing_raw):  # wg: worker group
                         gen_batch_output = self.actor_rollout_wg.generate_sequences(gen_batch)
 
-                    if self.config.algorithm.adv_estimator == "remax":
+                    if self.config.algorithm.adv_estimator == "remax": # what is remax?
                         with _timer("gen_max", timing_raw):
                             gen_baseline_batch = deepcopy(gen_batch)
                             gen_baseline_batch.meta_info["temperature"] = 0
@@ -527,7 +540,7 @@ class RayPPOTrainer:
                     batch.non_tensor_batch["uid"] = np.array(
                         [str(uuid.uuid4()) for _ in range(len(batch.batch))], dtype=object
                     )
-                    # repeat to align with repeated responses in rollout
+                    # repeat to align with repeated responses in rollout,(at this point, prompt is single only.)
                     batch = batch.repeat(repeat_times=self.config.worker.rollout.n, interleave=True)
                     batch = batch.union(gen_batch_output)
                     batch.non_tensor_batch.pop("multi_modal_data", None)
@@ -538,7 +551,7 @@ class RayPPOTrainer:
                             raise NotImplementedError("Reward model is not supported yet.")
 
                         # we combine with rule-based rm
-                        reward_tensor, reward_metrics = self.reward_fn(batch)
+                        reward_tensor, reward_metrics = self.reward_fn(batch) # here calling the setted reward functions
                         batch.batch["token_level_scores"] = reward_tensor
                         reward_metrics = {
                             f"reward/{key}": value for key, value in reduce_metrics(reward_metrics).items()
@@ -559,7 +572,7 @@ class RayPPOTrainer:
                         batch = batch.union(old_log_probs)
 
                     # compute ref_log_probs
-                    if self.use_reference_policy:
+                    if self.use_reference_policy: # GRPO kl需要计算 reference policy
                         with _timer("ref", timing_raw):
                             ref_log_probs = self.ref_policy_wg.compute_ref_log_probs(batch)
                             batch = batch.union(ref_log_probs)

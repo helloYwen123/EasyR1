@@ -1,0 +1,159 @@
+Gcs Debug state:
+
+GcsNodeManager: 
+- RegisterNode request count: 1
+- DrainNode request count: 0
+- GetAllNodeInfo request count: 52
+
+GcsActorManager: 
+- RegisterActor request count: 1
+- CreateActor request count: 1
+- GetActorInfo request count: 1
+- GetNamedActorInfo request count: 0
+- GetAllActorInfo request count: 1
+- KillActor request count: 0
+- ListNamedActors request count: 0
+- Registered actors count: 1
+- Destroyed actors count: 0
+- Named actors count: 0
+- Unresolved actors count: 0
+- Pending actors count: 0
+- Created actors count: 1
+- owners_: 1
+- actor_to_register_callbacks_: 0
+- actor_to_restart_callbacks_: 0
+- actor_to_create_callbacks_: 0
+- sorted_destroyed_actor_list_: 0
+
+GcsResourceManager: 
+- GetAllAvailableResources request count: 0
+- GetAllTotalResources request count: 0
+- GetAllResourceUsage request count: 4
+
+GcsPlacementGroupManager: 
+- CreatePlacementGroup request count: 0
+- RemovePlacementGroup request count: 0
+- GetPlacementGroup request count: 0
+- GetAllPlacementGroup request count: 0
+- WaitPlacementGroupUntilReady request count: 0
+- GetNamedPlacementGroup request count: 0
+- Scheduling pending placement group count: 0
+- Registered placement groups count: 0
+- Named placement group count: 0
+- Pending placement groups count: 0
+- Infeasible placement groups count: 0
+
+Publisher:
+RAY_LOG_CHANNEL
+- cumulative published messages: 7
+- cumulative published bytes: 11147
+- current buffered bytes: 262
+GCS_ACTOR_CHANNEL
+- cumulative published messages: 3
+- cumulative published bytes: 1218
+- current buffered bytes: 348
+GCS_WORKER_DELTA_CHANNEL
+- cumulative published messages: 1
+- cumulative published bytes: 97
+- current buffered bytes: 97
+GCS_JOB_CHANNEL
+- cumulative published messages: 1
+- cumulative published bytes: 720
+- current buffered bytes: 720
+RAY_NODE_RESOURCE_USAGE_CHANNEL
+- cumulative published messages: 4
+- cumulative published bytes: 603889
+- current buffered bytes: 150471
+GCS_NODE_INFO_CHANNEL
+- cumulative published messages: 1
+- cumulative published bytes: 577
+- current buffered bytes: 577
+
+[runtime env manager] ID to URIs table:
+[runtime env manager] URIs reference table:
+
+GcsTaskManager: 
+-Total num task events reported: 8
+-Total num status task events dropped: 0
+-Total num profile events dropped: 0
+-Current num of task events stored: 3
+-Total num of actor creation tasks: 1
+-Total num of actor tasks: 1
+-Total num of normal tasks: 0
+-Total num of driver tasks: 1
+
+GcsAutoscalerStateManager: 
+- last_seen_autoscaler_state_version_: 0
+- last_cluster_resource_state_version_: 4
+- pending demands:
+
+
+
+
+
+Global stats: 909 total (5 active)
+Queueing time: mean = 873.770 us, max = 84.659 ms, min = 105.000 ns, total = 794.257 ms
+Execution time:  mean = 23.181 ms, total = 21.072 s
+Event stats:
+	GcsInMemoryStore.Get - 110 total (0 active), Execution time: mean = 15.793 us, total = 1.737 ms, Queueing time: mean = 4.945 us, max = 19.480 us, min = 976.000 ns, total = 543.949 us
+	InternalKVGcsService.grpc_server.InternalKVGet - 108 total (0 active), Execution time: mean = 281.502 us, total = 30.402 ms, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	InternalKVGcsService.grpc_server.InternalKVGet.HandleRequestImpl - 108 total (0 active), Execution time: mean = 24.581 us, total = 2.655 ms, Queueing time: mean = 37.242 us, max = 444.675 us, min = 5.595 us, total = 4.022 ms
+	GcsInMemoryStore.Put - 102 total (0 active), Execution time: mean = 844.378 us, total = 86.127 ms, Queueing time: mean = 5.802 ms, max = 84.419 ms, min = 1.153 us, total = 591.823 ms
+	event_loop_lag_probe - 82 total (0 active), Execution time: mean = 26.051 us, total = 2.136 ms, Queueing time: mean = 167.333 us, max = 12.940 ms, min = 1.016 us, total = 13.721 ms
+	NodeInfoGcsService.grpc_server.GetAllNodeInfo.HandleRequestImpl - 52 total (0 active), Execution time: mean = 19.930 us, total = 1.036 ms, Queueing time: mean = 41.802 us, max = 135.106 us, min = 6.508 us, total = 2.174 ms
+	NodeInfoGcsService.grpc_server.GetAllNodeInfo - 52 total (0 active), Execution time: mean = 262.805 us, total = 13.666 ms, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	WorkerInfoGcsService.grpc_server.AddWorkerInfo.HandleRequestImpl - 34 total (0 active), Execution time: mean = 13.264 us, total = 450.978 us, Queueing time: mean = 12.841 us, max = 23.908 us, min = 7.330 us, total = 436.578 us
+	WorkerInfoGcsService.grpc_server.AddWorkerInfo - 34 total (0 active), Execution time: mean = 113.706 us, total = 3.866 ms, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	InternalKVGcsService.grpc_server.InternalKVPut.HandleRequestImpl - 29 total (0 active), Execution time: mean = 29.976 us, total = 869.291 us, Queueing time: mean = 55.963 us, max = 164.826 us, min = 8.940 us, total = 1.623 ms
+	InternalKVGcsService.grpc_server.InternalKVPut - 29 total (0 active), Execution time: mean = 402.443 us, total = 11.671 ms, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	RayletLoadPulled - 20 total (1 active), Execution time: mean = 261.220 us, total = 5.224 ms, Queueing time: mean = 265.898 us, max = 4.238 ms, min = 13.894 us, total = 5.318 ms
+	NodeManagerService.grpc_client.GetResourceLoad - 17 total (0 active), Execution time: mean = 1.658 ms, total = 28.178 ms, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	NodeManagerService.grpc_client.GetResourceLoad.OnReplyReceived - 17 total (0 active), Execution time: mean = 93.804 us, total = 1.595 ms, Queueing time: mean = 88.430 us, max = 136.809 us, min = 22.350 us, total = 1.503 ms
+	NodeInfoGcsService.grpc_server.GetClusterId.HandleRequestImpl - 10 total (0 active), Execution time: mean = 52.020 us, total = 520.199 us, Queueing time: mean = 81.342 us, max = 138.024 us, min = 17.198 us, total = 813.422 us
+	NodeInfoGcsService.grpc_server.GetClusterId - 10 total (0 active), Execution time: mean = 547.058 us, total = 5.471 ms, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	NodeInfoGcsService.grpc_server.CheckAlive.HandleRequestImpl - 8 total (0 active), Execution time: mean = 25.583 us, total = 204.665 us, Queueing time: mean = 48.874 us, max = 113.210 us, min = 29.491 us, total = 390.993 us
+	NodeInfoGcsService.grpc_server.CheckAlive - 8 total (0 active), Execution time: mean = 497.393 us, total = 3.979 ms, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	ClusterResourceManager.ResetRemoteNodeView - 7 total (1 active), Execution time: mean = 9.556 us, total = 66.889 us, Queueing time: mean = 59.889 us, max = 115.866 us, min = 43.405 us, total = 419.224 us
+	GcsInMemoryStore.GetAll - 6 total (0 active), Execution time: mean = 10.532 us, total = 63.191 us, Queueing time: mean = 23.096 us, max = 28.387 us, min = 4.828 us, total = 138.574 us
+	HealthCheck - 5 total (0 active), Execution time: mean = 9.304 us, total = 46.520 us, Queueing time: mean = 87.235 us, max = 129.632 us, min = 23.342 us, total = 436.176 us
+	AutoscalerStateService.grpc_server.GetClusterResourceState.HandleRequestImpl - 4 total (0 active), Execution time: mean = 37.579 us, total = 150.316 us, Queueing time: mean = 44.282 us, max = 110.687 us, min = 12.590 us, total = 177.128 us
+	NodeResourceInfoGcsService.grpc_server.GetAllResourceUsage - 4 total (0 active), Execution time: mean = 561.463 us, total = 2.246 ms, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	NodeResourceInfoGcsService.grpc_server.GetAllResourceUsage.HandleRequestImpl - 4 total (0 active), Execution time: mean = 61.052 us, total = 244.208 us, Queueing time: mean = 83.621 us, max = 143.054 us, min = 33.833 us, total = 334.482 us
+	PeriodicalRunner.RunFnPeriodically - 4 total (0 active), Execution time: mean = 567.015 us, total = 2.268 ms, Queueing time: mean = 42.389 ms, max = 84.659 ms, min = 36.225 us, total = 169.556 ms
+	AutoscalerStateService.grpc_server.GetClusterResourceState - 4 total (0 active), Execution time: mean = 410.299 us, total = 1.641 ms, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	GcsHealthCheckManager::MarkNodeHealthy - 3 total (0 active), Execution time: mean = 1.750 us, total = 5.250 us, Queueing time: mean = 41.552 us, max = 89.912 us, min = 13.469 us, total = 124.655 us
+	GcsResourceManager::Update - 3 total (0 active), Execution time: mean = 47.774 us, total = 143.323 us, Queueing time: mean = 30.248 us, max = 77.804 us, min = 2.814 us, total = 90.743 us
+	GCSServer.deadline_timer.debug_state_dump - 2 total (1 active, 1 running), Execution time: mean = 2.265 ms, total = 4.530 ms, Queueing time: mean = 38.327 us, max = 76.654 us, min = 76.654 us, total = 76.654 us
+	InternalKVGcsService.grpc_server.GetInternalConfig - 1 total (0 active), Execution time: mean = 665.923 us, total = 665.923 us, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	JobInfoGcsService.grpc_server.GetAllJobInfo.HandleRequestImpl - 1 total (0 active), Execution time: mean = 19.360 us, total = 19.360 us, Queueing time: mean = 21.912 us, max = 21.912 us, min = 21.912 us, total = 21.912 us
+	GcsHealthCheckManager::AddNode - 1 total (0 active), Execution time: mean = 10.526 us, total = 10.526 us, Queueing time: mean = 452.000 ns, max = 452.000 ns, min = 452.000 ns, total = 452.000 ns
+	JobInfoGcsService.grpc_server.AddJob - 1 total (0 active), Execution time: mean = 189.236 us, total = 189.236 us, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	JobInfoGcsService.grpc_server.GetAllJobInfo - 1 total (0 active), Execution time: mean = 137.061 us, total = 137.061 us, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	ActorInfoGcsService.grpc_server.RegisterActor.HandleRequestImpl - 1 total (0 active), Execution time: mean = 510.721 us, total = 510.721 us, Queueing time: mean = 10.400 us, max = 10.400 us, min = 10.400 us, total = 10.400 us
+	ActorInfoGcsService.grpc_server.GetActorInfo - 1 total (0 active), Execution time: mean = 121.965 us, total = 121.965 us, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	NodeManagerService.grpc_client.RequestWorkerLease - 1 total (0 active), Execution time: mean = 1.051 s, total = 1.051 s, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	CoreWorkerService.grpc_client.PushTask - 1 total (0 active), Execution time: mean = 9.332 s, total = 9.332 s, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	GcsServer.GetOrGenerateClusterId.continuation - 1 total (0 active), Execution time: mean = 84.664 ms, total = 84.664 ms, Queueing time: mean = 105.000 ns, max = 105.000 ns, min = 105.000 ns, total = 105.000 ns
+	CoreWorkerService.grpc_client.WaitForActorRefDeleted - 1 total (1 active), Execution time: mean = 0.000 s, total = 0.000 s, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	ActorInfoGcsService.grpc_server.GetAllActorInfo - 1 total (0 active), Execution time: mean = 429.561 us, total = 429.561 us, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	ActorInfoGcsService.grpc_server.GetAllActorInfo.HandleRequestImpl - 1 total (0 active), Execution time: mean = 24.575 us, total = 24.575 us, Queueing time: mean = 114.084 us, max = 114.084 us, min = 114.084 us, total = 114.084 us
+	ActorInfoGcsService.grpc_server.GetActorInfo.HandleRequestImpl - 1 total (0 active), Execution time: mean = 12.674 us, total = 12.674 us, Queueing time: mean = 6.345 us, max = 6.345 us, min = 6.345 us, total = 6.345 us
+	GcsInitData::AsyncLoad - 1 total (0 active), Execution time: mean = 29.052 us, total = 29.052 us, Queueing time: mean = 452.000 ns, max = 452.000 ns, min = 452.000 ns, total = 452.000 ns
+	NodeInfoGcsService.grpc_server.RegisterNode.HandleRequestImpl - 1 total (0 active), Execution time: mean = 110.222 us, total = 110.222 us, Queueing time: mean = 34.291 us, max = 34.291 us, min = 34.291 us, total = 34.291 us
+	InternalKVGcsService.grpc_server.InternalKVDel.HandleRequestImpl - 1 total (0 active), Execution time: mean = 45.130 us, total = 45.130 us, Queueing time: mean = 86.269 us, max = 86.269 us, min = 86.269 us, total = 86.269 us
+	JobInfoGcsService.grpc_server.GetNextJobID - 1 total (0 active), Execution time: mean = 354.796 us, total = 354.796 us, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	NodeManagerService.grpc_client.RequestWorkerLease.OnReplyReceived - 1 total (0 active), Execution time: mean = 293.110 us, total = 293.110 us, Queueing time: mean = 20.839 us, max = 20.839 us, min = 20.839 us, total = 20.839 us
+	WorkerInfoGcsService.grpc_server.ReportWorkerFailure - 1 total (0 active), Execution time: mean = 1.051 ms, total = 1.051 ms, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	CoreWorkerService.grpc_client.PushTask.OnReplyReceived - 1 total (0 active), Execution time: mean = 509.928 us, total = 509.928 us, Queueing time: mean = 32.617 us, max = 32.617 us, min = 32.617 us, total = 32.617 us
+	JobInfoGcsService.grpc_server.GetNextJobID.HandleRequestImpl - 1 total (0 active), Execution time: mean = 13.393 us, total = 13.393 us, Queueing time: mean = 36.121 us, max = 36.121 us, min = 36.121 us, total = 36.121 us
+	InternalKVGcsService.grpc_server.InternalKVDel - 1 total (0 active), Execution time: mean = 494.530 us, total = 494.530 us, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	WorkerInfoGcsService.grpc_server.ReportWorkerFailure.HandleRequestImpl - 1 total (0 active), Execution time: mean = 15.105 us, total = 15.105 us, Queueing time: mean = 14.127 us, max = 14.127 us, min = 14.127 us, total = 14.127 us
+	ActorInfoGcsService.grpc_server.CreateActor - 1 total (0 active), Execution time: mean = 10.385 s, total = 10.385 s, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	NodeInfoGcsService.grpc_server.RegisterNode - 1 total (0 active), Execution time: mean = 888.311 us, total = 888.311 us, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	InternalKVGcsService.grpc_server.GetInternalConfig.HandleRequestImpl - 1 total (0 active), Execution time: mean = 66.911 us, total = 66.911 us, Queueing time: mean = 118.201 us, max = 118.201 us, min = 118.201 us, total = 118.201 us
+	JobInfoGcsService.grpc_server.AddJob.HandleRequestImpl - 1 total (0 active), Execution time: mean = 67.867 us, total = 67.867 us, Queueing time: mean = 9.737 us, max = 9.737 us, min = 9.737 us, total = 9.737 us
+	ActorInfoGcsService.grpc_server.RegisterActor - 1 total (0 active), Execution time: mean = 646.923 us, total = 646.923 us, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	GCSServer.deadline_timer.debug_state_event_stats_print - 1 total (1 active), Execution time: mean = 0.000 s, total = 0.000 s, Queueing time: mean = 0.000 s, max = -0.000 s, min = 9223372036.855 s, total = 0.000 s
+	GcsInMemoryStore.Delete - 1 total (0 active), Execution time: mean = 12.249 us, total = 12.249 us, Queueing time: mean = 6.021 us, max = 6.021 us, min = 6.021 us, total = 6.021 us
+	GcsInMemoryStore.GetNextJobID - 1 total (0 active), Execution time: mean = 14.825 us, total = 14.825 us, Queueing time: mean = 9.815 us, max = 9.815 us, min = 9.815 us, total = 9.815 us
+	ActorInfoGcsService.grpc_server.CreateActor.HandleRequestImpl - 1 total (0 active), Execution time: mean = 219.937 us, total = 219.937 us, Queueing time: mean = 12.486 us, max = 12.486 us, min = 12.486 us, total = 12.486 us

@@ -1,0 +1,2 @@
+INFO 04-27 00:47:38 [__init__.py:239] Automatically detected platform cuda.
+2025-04-27 00:47:53,706	INFO worker.py:1832 -- Started a local Ray instance. View the dashboard at [1m[32mhttp://127.0.0.1:8265 [39m[22m

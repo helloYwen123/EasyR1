@@ -10,7 +10,7 @@ data:
   val_batch_size: -1
   format_prompt: ./examples/format_prompt/math_format.jinja
   shuffle: true
-  seed: 1
+  seed: 1 # 42
   max_pixels: 4194304
   min_pixels: 262144
   filter_overlong_prompts: true
@@ -44,6 +44,7 @@ worker:
       enable_full_shard: true
       enable_cpu_offload: false
       enable_rank0_init: true
+      torch_dtype: bfloat16 # add flash-attn2 (Ampere GPU) 
     offload:
       offload_params: true  # true: more CPU memory; false: more GPU memory
       offload_optimizer: true  # true: more CPU memory; false: more GPU memory
@@ -66,6 +67,7 @@ worker:
       enable_full_shard: true
       enable_cpu_offload: true  # true: more CPU memory; false: more GPU memory
       enable_rank0_init: true
+      torch_dtype: bfloat16 # add flash-attn2 (Ampere GPU) 
     offload:
       offload_params: false
 
@@ -76,7 +78,7 @@ worker:
 trainer:
   total_episodes: 15
   logger: ["console", "wandb"]
-  project_name: easy_r1
+  project_name: Debug # easyr1
   experiment_name: qwen2_5_7b_math_grpo
   n_gpus_per_node: 8
   nnodes: 1

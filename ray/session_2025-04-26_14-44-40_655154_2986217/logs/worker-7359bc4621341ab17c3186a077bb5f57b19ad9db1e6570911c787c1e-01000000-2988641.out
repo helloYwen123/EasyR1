@@ -1,0 +1,221 @@
+:job_id:01000000
+INFO 04-26 14:44:50 [__init__.py:239] Automatically detected platform cuda.
+:actor_name:Runner
+{
+  "data": {
+    "train_files": "BLINK-Benchmark/BLINK",
+    "val_files": "BLINK-Benchmark/BLINK",
+    "prompt_key": "problem",
+    "answer_key": "answer",
+    "image_key": "images",
+    "max_prompt_length": 2048,
+    "max_response_length": 2048,
+    "rollout_batch_size": 512,
+    "val_batch_size": -1,
+    "format_prompt": "/home/stud/wxie/EasyR1/examples/format_prompt/math_format.jinja",
+    "shuffle": true,
+    "seed": 1,
+    "max_pixels": 4194304,
+    "min_pixels": 262144,
+    "filter_overlong_prompts": true,
+    "subtasks": [
+      "Counting"
+    ],
+    "dataset_prefix": "/home/stud/wxie"
+  },
+  "worker": {
+    "hybrid_engine": true,
+    "actor": {
+      "strategy": "fsdp",
+      "global_batch_size": 128,
+      "micro_batch_size_per_device_for_update": 4,
+      "micro_batch_size_per_device_for_experience": 16,
+      "max_grad_norm": 1.0,
+      "clip_ratio_low": 0.2,
+      "clip_ratio_high": 0.3,
+      "clip_ratio_dual": 3.0,
+      "ppo_epochs": 1,
+      "padding_free": true,
+      "ulysses_sequence_parallel_size": 1,
+      "use_torch_compile": true,
+      "model": {
+        "model_path": "Qwen/Qwen2.5-VL-3B-Instruct",
+        "tokenizer_path": "Qwen/Qwen2.5-VL-3B-Instruct",
+        "override_config": {},
+        "enable_gradient_checkpointing": true,
+        "trust_remote_code": false,
+        "freeze_vision_tower": false
+      },
+      "optim": {
+        "lr": 1e-06,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "weight_decay": 0.01,
+        "strategy": "adamw",
+        "lr_warmup_ratio": 0.0,
+        "min_lr_ratio": null,
+        "warmup_style": "constant",
+        "training_steps": -1
+      },
+      "fsdp": {
+        "enable_full_shard": true,
+        "enable_cpu_offload": false,
+        "enable_rank0_init": true,
+        "use_orig_params": false,
+        "torch_dtype": "bfloat16",
+        "fsdp_size": -1,
+        "mp_param_dtype": "bf16",
+        "mp_reduce_dtype": "fp32",
+        "mp_buffer_dtype": "fp32"
+      },
+      "offload": {
+        "offload_params": true,
+        "offload_optimizer": true
+      },
+      "global_batch_size_per_device": -1,
+      "disable_kl": false,
+      "use_kl_loss": true,
+      "kl_penalty": "low_var_kl",
+      "kl_coef": 0.01
+    },
+    "critic": {
+      "strategy": "fsdp",
+      "global_batch_size": 256,
+      "micro_batch_size_per_device_for_update": 4,
+      "micro_batch_size_per_device_for_experience": 16,
+      "max_grad_norm": 1.0,
+      "cliprange_value": 0.5,
+      "ppo_epochs": 1,
+      "padding_free": false,
+      "ulysses_sequence_parallel_size": 1,
+      "model": {
+        "model_path": null,
+        "tokenizer_path": null,
+        "override_config": {},
+        "enable_gradient_checkpointing": true,
+        "trust_remote_code": true,
+        "freeze_vision_tower": false
+      },
+      "optim": {
+        "lr": 1e-06,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "weight_decay": 0.01,
+        "strategy": "adamw",
+        "lr_warmup_ratio": 0.0,
+        "min_lr_ratio": null,
+        "warmup_style": "constant",
+        "training_steps": -1
+      },
+      "fsdp": {
+        "enable_full_shard": true,
+        "enable_cpu_offload": false,
+        "enable_rank0_init": false,
+        "use_orig_params": false,
+        "torch_dtype": null,
+        "fsdp_size": -1,
+        "mp_param_dtype": "bf16",
+        "mp_reduce_dtype": "fp32",
+        "mp_buffer_dtype": "fp32"
+      },
+      "offload": {
+        "offload_params": false,
+        "offload_optimizer": false
+      },
+      "global_batch_size_per_device": -1
+    },
+    "ref": {
+      "strategy": "fsdp",
+      "fsdp": {
+        "enable_full_shard": true,
+        "enable_cpu_offload": true,
+        "enable_rank0_init": true,
+        "use_orig_params": false,
+        "torch_dtype": "bfloat16",
+        "fsdp_size": -1,
+        "mp_param_dtype": "bf16",
+        "mp_reduce_dtype": "fp32",
+        "mp_buffer_dtype": "fp32"
+      },
+      "offload": {
+        "offload_params": false,
+        "offload_optimizer": false
+      },
+      "micro_batch_size_per_device_for_experience": 16,
+      "padding_free": true,
+      "ulysses_sequence_parallel_size": 1,
+      "use_torch_compile": true
+    },
+    "reward": {
+      "reward_type": "function",
+      "score_function": "/home/stud/wxie/EasyR1/examples/score_function/math.py",
+      "score_function_kwargs": {},
+      "skip_special_tokens": true,
+      "score_function_name": "compute_score"
+    },
+    "rollout": {
+      "name": "vllm",
+      "n": 5,
+      "temperature": 1.0,
+      "top_p": 0.99,
+      "top_k": -1,
+      "seed": 1,
+      "limit_images": 0,
+      "dtype": "bf16",
+      "gpu_memory_utilization": 0.6,
+      "ignore_eos": false,
+      "enforce_eager": false,
+      "enable_chunked_prefill": false,
+      "tensor_parallel_size": 1,
+      "max_model_len": null,
+      "max_num_batched_tokens": 8192,
+      "disable_log_stats": true,
+      "val_override_config": {
+        "temperature": 0.5,
+        "n": 1
+      },
+      "prompt_length": 2048,
+      "response_length": 2048,
+      "trust_remote_code": false
+    }
+  },
+  "algorithm": {
+    "gamma": 1.0,
+    "lam": 1.0,
+    "adv_estimator": "grpo",
+    "disable_kl": false,
+    "use_kl_loss": true,
+    "kl_penalty": "low_var_kl",
+    "kl_coef": 0.01,
+    "kl_type": "fixed",
+    "kl_horizon": 0.0,
+    "kl_target": 0.0
+  },
+  "trainer": {
+    "total_episodes": 15,
+    "max_steps": null,
+    "project_name": "Debug",
+    "experiment_name": "qwen2_5_vl_3b_geo_grpo",
+    "logger": [
+      "console",
+      "wandb"
+    ],
+    "nnodes": 1,
+    "n_gpus_per_node": 1,
+    "critic_warmup": 0,
+    "val_freq": 5,
+    "val_before_train": true,
+    "val_only": false,
+    "val_generations_to_log": 3,
+    "save_freq": 5,
+    "save_limit": 3,
+    "save_checkpoint_path": "/home/stud/wxie/EasyR1/checkpoints/Debug/qwen2_5_vl_3b_geo_grpo",
+    "load_checkpoint_path": null
+  }
+}
+Using score function `compute_score` from `/home/stud/wxie/EasyR1/examples/score_function/math.py`.
+Using score function `compute_score` from `/home/stud/wxie/EasyR1/examples/score_function/math.py`.

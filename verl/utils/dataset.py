@@ -17,10 +17,10 @@ import os
 from collections import defaultdict
 from io import BytesIO
 from typing import Any, Dict, List, Optional, Union
-
+import json
 import numpy as np
 import torch
-from datasets import load_dataset
+from datasets import load_dataset, concatenate_datasets
 from jinja2 import Template
 from PIL import Image
 from PIL.Image import Image as ImageObject
@@ -95,6 +95,8 @@ class RLHFDataset(Dataset, ImageProcessMixin):
         max_pixels: Optional[int] = None,
         min_pixels: Optional[int] = None,
         filter_overlong_prompts: bool = True,
+        subtasks: Optional[list[str]] = None, # specific for BLINK dataset and CV-Bench
+        dataset_prefix: Optional[str] = None, # specifc for BLINK and CV-Bench
     ):
         self.tokenizer = tokenizer
         self.processor = processor
@@ -106,20 +108,64 @@ class RLHFDataset(Dataset, ImageProcessMixin):
         self.max_pixels = max_pixels
         self.min_pixels = min_pixels
         self.filter_overlong_prompts = filter_overlong_prompts
-
+        self.data_path = data_path
+        
         if "@" in data_path:
             data_path, data_split = data_path.split("@")
         else:
             data_split = "train"
+            
+        
+        
+        if not ("BLINK" in data_path or "SAT" in data_path or "CV-Bench" in data_path): # original implementation
+            if os.path.isdir(data_path):
+                # when we use dataset builder, we should always refer to the train split
+                self.dataset = load_dataset("parquet", data_dir=data_path, split="train")
+            elif os.path.isfile(data_path):
+                self.dataset = load_dataset("parquet", data_files=data_path, split="train")
+            else:
+                # load remote dataset from huggingface hub
+                self.dataset = load_dataset(data_path, split=data_split)
+        else: # process dataset(SAT; BLINK; CV-Bench)
+            if "BLINK" in data_path:
+                all_datasets = []
+                print(f"loading dataset: {data_path}\n")
+                for subtask in subtasks: # because in BLINK there is subtasks(e.g. Counting)
+                    blink_ds = load_dataset(f"{data_path}", f"{subtask}", split="val") # e.g. BLINK-Benchmark/BLINK val
+                    blink_ds = blink_ds.map(lambda x: {"sub_task": subtask})
+                    all_datasets.append(blink_ds)
+                    
+                blink_ds = concatenate_datasets(all_datasets)
+                
+                
+                all_subtasks_json = []
+                for task in subtasks: # here json file should be in correct path
+                    subtask_json_path = f"BLINK_Dataset/{task}/val/{task}_val.json" # only val has ground truth
+                    subtask_json_path = os.path.join(dataset_prefix, subtask_json_path)
+                    
+                    with open(subtask_json_path, 'r') as f: # to obtain the image paths for each QA(saved in json file) 
+                        raw_dataset = json.load(f) 
+                        subtask_json  = [sample for sample in raw_dataset]
+                        
+                    all_subtasks_json.extend(subtask_json)
 
-        if os.path.isdir(data_path):
-            # when we use dataset builder, we should always refer to the train split
-            self.dataset = load_dataset("parquet", data_dir=data_path, split="train")
-        elif os.path.isfile(data_path):
-            self.dataset = load_dataset("parquet", data_files=data_path, split="train")
-        else:
-            # load remote dataset from huggingface hub
-            self.dataset = load_dataset(data_path, split=data_split)
+                self.dataset = blink_ds # converted to be consistent with original setting    
+                self.all_subtasks_json = all_subtasks_json
+                self.dataset_prefix = dataset_prefix
+                
+            if "SAT" in data_path:
+                # TODO
+                print(f"Loading dataset: {data_path}\n")
+
+                dataset_json_path = "SAT_subtasks/SAT_Counting.json" # TODO Better
+                full_path = os.path.join(dataset_prefix, dataset_json_path)
+                with open(full_path, 'r') as f:
+                    raw_dataset = json.load(f)
+                self.dataset = raw_dataset  # json format in SAT
+                self.dataset_prefix = dataset_prefix
+                
+            if "CV-Bench" in data_path:
+                pass # TODO
 
         self.format_prompt = None
         if format_prompt:
@@ -148,7 +194,7 @@ class RLHFDataset(Dataset, ImageProcessMixin):
             return [{"role": "user", "content": content_list}]
         else:
             return [{"role": "user", "content": prompt_str}]
-
+        
     def _filter_overlong_prompts(self, example: Dict[str, Any]) -> bool:
         messages = self._build_messages(example)
         processing_class = self.processor if self.processor is not None else self.tokenizer
@@ -158,9 +204,54 @@ class RLHFDataset(Dataset, ImageProcessMixin):
 
     def __len__(self):
         return len(self.dataset)
+    
+    ### Adapt to `Blink` dataset for post-processing
+    ### load multi-images; add <image> tags into prompts; add image_paths for tools usage
+    def _blink_format(self, example, json_file):
+        # collect Un-None images
+        images = [example[k] for k in ['image_1', 'image_2', 'image_3', 'image_4'] if example.get(k) is not None]
+        num_images = len(images)
+
+        # add <image> tag into original prompts
+        full_prompt = "<image>" * num_images + example["prompt"]
+        for sample in json_file:
+            if sample["idx"] == example["idx"]:
+                image_paths = [os.path.join(self.dataset_prefix, img_path) for img_path in sample["image_paths"]]
+        answer = example["answer"].strip("()")
+        return {
+            "images": images,
+            "problem": full_prompt,
+            "answer": answer,
+            "idx": example["idx"],
+            "image_paths": image_paths
+        }
+        
+    def _sat_format(self, example):
+        image_paths = [os.path.join(self.dataset_prefix, path) for path in example["images"]]
+        images = [Image.open(path) for path in image_paths]
+        question=example["messages"][0]["content"].strip()
+        answer = example["messages"][1]["content"].strip()
+        idx = os.path.splitext(os.path.basename(example["images"][0]))[0]  # image name as index
+        
+        return {
+            "images": images,
+            "problem": question,
+            "answer": answer,
+            "idx": idx,
+            "image_paths" : image_paths
+        }
 
     def __getitem__(self, index):
         example: dict = self.dataset[index]
+        ###
+        if "BLINK" in self.data_path:
+            example = self._blink_format(example, self.all_subtasks_json)
+        if "SAT" in self.data_path:
+            example = self._sat_format(example)
+            
+        if "CV-Bench" in self.data_path:
+            pass #TODO
+        ###
         messages = self._build_messages(example)
 
         if self.image_key in example:

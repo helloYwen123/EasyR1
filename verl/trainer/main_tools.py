@@ -76,7 +76,7 @@ class Runner:
         import os
         log_dir = "/home/stud/wxie/EasyR1/logs"
         os.makedirs(log_dir, exist_ok=True)
-        path = os.path.join(log_dir, "batch01.txt")
+        path = os.path.join(log_dir, "batchSAT.txt")
         
         for batch in train_dataloader:
             if n > 0:

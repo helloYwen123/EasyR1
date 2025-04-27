@@ -1,9 +1,0 @@
-
-apiVersion: 1
-
-providers:
-  - name: Ray    # Default dashboards provided by OSS Ray
-    folder: Ray
-    type: file
-    options:
-      path: /home/stud/wxie/EasyR1/ray/session_2025-04-26_12-59-23_009031_2918272/metrics/grafana/dashboards

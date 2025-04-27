@@ -1,4 +1,0 @@
-:job_id:01000000
-:actor_name:Runner
-Filtering overlong prompts:   0%|          | 0/2101 [00:00<?, ? examples/s]Filtering overlong prompts:  48%|████▊     | 1000/2101 [00:04<00:04, 233.85 examples/s]Filtering overlong prompts:  95%|█████████▌| 2000/2101 [00:07<00:00, 290.13 examples/s]Filtering overlong prompts: 100%|██████████| 2101/2101 [00:07<00:00, 295.32 examples/s]Filtering overlong prompts: 100%|██████████| 2101/2101 [00:07<00:00, 283.31 examples/s]
-Filtering overlong prompts:   0%|          | 0/601 [00:00<?, ? examples/s]Filtering overlong prompts: 100%|██████████| 601/601 [00:02<00:00, 261.99 examples/s]Filtering overlong prompts: 100%|██████████| 601/601 [00:02<00:00, 261.51 examples/s]

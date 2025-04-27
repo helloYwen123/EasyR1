@@ -1,4 +1,0 @@
-:job_id:01000000
-:actor_name:Runner
-Map:   0%|          | 0/120 [00:00<?, ? examples/s]Map: 100%|██████████| 120/120 [00:00<00:00, 560.62 examples/s]Map: 100%|██████████| 120/120 [00:00<00:00, 512.40 examples/s]
-Filtering overlong prompts:   0%|          | 0/120 [00:00<?, ? examples/s]Filtering overlong prompts:   0%|          | 0/120 [00:00<?, ? examples/s]Filtering overlong prompts:   0%|          | 0/120 [00:00<?, ? examples/s]

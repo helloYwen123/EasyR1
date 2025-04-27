@@ -1,8 +1,0 @@
-WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
-I0000 00:00:1745671330.065870 2978927 chttp2_transport.cc:1201] ipv4:10.153.51.195:44893: Got goaway [2] err=UNAVAILABLE:GOAWAY received; Error code: 2; Debug Text: Cancelling all calls {grpc_status:14, http2_error:2, created_time:"2025-04-26T14:42:10.065846497+02:00"}
-*** SIGTERM received at time=1745671331 on cpu 26 ***
-PC: @           0x51f470  (unknown)  type_getattro
-    @     0x706def645330  (unknown)  (unknown)
-[2025-04-26 14:42:11,210 E 2978891 2978891] logging.cc:484: *** SIGTERM received at time=1745671331 on cpu 26 ***
-[2025-04-26 14:42:11,210 E 2978891 2978891] logging.cc:484: PC: @           0x51f470  (unknown)  type_getattro
-[2025-04-26 14:42:11,210 E 2978891 2978891] logging.cc:484:     @     0x706def645330  (unknown)  (unknown)

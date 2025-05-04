@@ -39,6 +39,7 @@ def create_dataloader(config: DataConfig, tokenizer: PreTrainedTokenizer, proces
         filter_overlong_prompts=config.filter_overlong_prompts,
         subtasks= config.subtasks, # specific for BLINK dataset and CV-Bench
         dataset_prefix = config.dataset_prefix, # specific for BLINK dataset and CV-Bench
+        tools_config= config.tools_config # specific for tools
     )
     # use sampler for better ckpt resume
     if config.shuffle:
@@ -52,7 +53,7 @@ def create_dataloader(config: DataConfig, tokenizer: PreTrainedTokenizer, proces
         dataset=train_dataset,
         batch_size=config.rollout_batch_size,
         sampler=sampler,
-        num_workers=8,
+        num_workers=2, # default: 8
         collate_fn=collate_fn,
         pin_memory=False,
         drop_last=True,
@@ -73,12 +74,13 @@ def create_dataloader(config: DataConfig, tokenizer: PreTrainedTokenizer, proces
         filter_overlong_prompts=config.filter_overlong_prompts,
         subtasks= config.subtasks, # specific for BLINK dataset and CV-Bench
         dataset_prefix = config.dataset_prefix, # specific for BLINK dataset and CV-Bench
+        tools_config= config.tools_config # specific for tools
     )
     val_dataloader = StatefulDataLoader(
         dataset=val_dataset,
         batch_size=len(val_dataset) if config.val_batch_size == -1 else config.val_batch_size,
         shuffle=False,
-        num_workers=8,
+        num_workers=2, # default: 8
         collate_fn=collate_fn,
         pin_memory=False,
         drop_last=False,

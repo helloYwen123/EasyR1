@@ -6,16 +6,17 @@ data:
   image_key: images
   max_prompt_length: 2048
   max_response_length: 2048
-  rollout_batch_size: 32
+  rollout_batch_size: 8
   val_batch_size: -1
-  format_prompt: ./examples/format_prompt/math_format.jinja
+  format_prompt: ./examples/format_prompt/tools_thinker_format.jinja
   shuffle: true
   seed: 1 # 42
   max_pixels: 4194304
   min_pixels: 262144
   filter_overlong_prompts: false
-  subtasks: null  # ["Counting","Art_Style"] # subtasks list
-  dataset_prefix: /nfs/data8/liao/wxie/SAT/ # Dataset root path # BLINK:/home/stud/wxie # SAT:/nfs/data8/liao/wxie/SAT/ 
+  subtasks: ["Counting"]  # ["Counting","Art_Style"] # subtasks list or null
+  dataset_prefix: /home/stud/wxie # Dataset root path # BLINK:/home/stud/wxie # SAT:/nfs/data8/liao/wxie/SAT/
+  tools_config: ./examples/tools_config/tools_configuration_file.yaml
 
 algorithm:
   adv_estimator: grpo
@@ -26,9 +27,9 @@ algorithm:
 
 worker:
   actor:
-    global_batch_size: 16
-    micro_batch_size_per_device_for_update: 4
-    micro_batch_size_per_device_for_experience: 16
+    global_batch_size: 4
+    micro_batch_size_per_device_for_update: 2
+    micro_batch_size_per_device_for_experience: 4
     max_grad_norm: 1.0
     padding_free: true
     ulysses_sequence_parallel_size: 1
@@ -46,16 +47,16 @@ worker:
       enable_full_shard: true
       enable_cpu_offload: false
       enable_rank0_init: true
-      torch_dtype: bfloat16 # add flash-attn2 (Ampere GPU) 
+      torch_dtype: bf16 # add flash-attn2 (Ampere GPU) 
     offload:
       offload_params: true  # true: more CPU memory; false: more GPU memory
       offload_optimizer: true  # true: more CPU memory; false: more GPU memory
 
   rollout:
-    n: 8
+    n: 6
     temperature: 1.0
     top_p: 0.99
-    gpu_memory_utilization: 0.6
+    gpu_memory_utilization: 0.5
     enforce_eager: false
     enable_chunked_prefill: false
     tensor_parallel_size: 2
@@ -69,26 +70,26 @@ worker:
       enable_full_shard: true
       enable_cpu_offload: true  # true: more CPU memory; false: more GPU memory
       enable_rank0_init: true
-      torch_dtype: bfloat16 # add flash-attn2 (Ampere GPU) 
+      torch_dtype: bf16 # add flash-attn2 (Ampere GPU) 
     offload:
       offload_params: false
 
   reward:
     reward_type: function
-    score_function: ./examples/score_function/math.py:compute_score
+    score_function: ./examples/score_function/tool_reward.py:compute_score
 
 trainer:
-  total_episodes: 1 # 115
+  total_episodes: 1 # 15
   logger: ["console", "wandb"]
   project_name: Debug # easyr1
   experiment_name: qwen2_5_7b_grpo
   n_gpus_per_node: 8
   nnodes: 1
   val_freq: 5  # -1 to disable
-  val_before_train: true
+  val_before_train: false # true
   val_only: false
   val_generations_to_log: 3
-  save_freq: 5  # -1 to disable
+  save_freq: -1  # -1 to disable
   save_limit: 3  # -1 to disable
   save_checkpoint_path: null
   load_checkpoint_path: null

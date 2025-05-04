@@ -194,6 +194,11 @@ class RayPPOTrainer:
         self.reward_fn = reward_fn
         self.val_reward_fn = val_reward_fn
 
+        self.tool_usage = False
+        if ("BLINK" in config.data.train_files or "SAT" in config.data.train_files or "CV-Bench" in config.data.train_files):
+            self.tool_usage = True
+            print(f"Tool usage reward: {self.tool_usage}")
+        
         self.hybrid_engine = config.worker.hybrid_engine
         if self.hybrid_engine:
             assert Role.ActorRollout in role_worker_mapping, (
@@ -303,7 +308,7 @@ class RayPPOTrainer:
 
             test_gen_batch.meta_info = self.config.worker.rollout.val_override_config
             test_gen_batch, pad_size = pad_dataproto_to_divisor(test_gen_batch, self.actor_rollout_wg.world_size)
-            
+
             test_output_gen_batch = self.actor_rollout_wg.generate_sequences(test_gen_batch)
             test_output_gen_batch = unpad_dataproto(test_output_gen_batch, pad_size=pad_size)
             print("validation generation end")
@@ -313,18 +318,22 @@ class RayPPOTrainer:
             output_texts = [self.tokenizer.decode(ids, skip_special_tokens=True) for ids in output_ids]
             sample_outputs.extend(output_texts)
             sample_labels.extend(test_batch.non_tensor_batch["ground_truth"].tolist())
-            # 结合原先的 test_batch 和 test_output_gen_batch
+            # test_batch: DataProto 对象;结合原先的 test_batch 和 test_output_gen_batch
             test_batch = test_batch.union(test_output_gen_batch)
-            # test_batch (现在): DataProto 对象
-            # - 估计内容: 原始的 input_ids/mask, 生成的 responses/response_mask, non_tensor 的 ground_truth
+            # 估计内容: 原始的 input_ids/mask, 生成的 responses/response_mask, non_tensor 的 ground_truth
             # evaluate using reward_function
-            reward_tensor, reward_metrics = self.val_reward_fn(test_batch)
+            if self.tool_usage:
+                print(f"global_step in reward computation: {self.global_step}")
+                reward_tensor, reward_metrics = self.val_reward_fn(test_batch, step = self.global_step)
+            else:
+                print(f"No tool usage! global_step in reward computation: {self.global_step}")
+                reward_tensor, reward_metrics = self.val_reward_fn(test_batch)
 
             # Store scores
-            scores = reward_tensor.sum(-1).cpu().tolist() # 每个512为一个reward_tensor 然后求和
+            scores = reward_tensor.sum(-1).cpu().tolist() 
             sample_scores.extend(scores)
 
-            reward_tensor_lst.append(reward_tensor) # 4个512在list里
+            reward_tensor_lst.append(reward_tensor)
             for key, value in reward_metrics.items():
                 reward_metrics_lst[key].extend(value)
 
@@ -337,7 +346,7 @@ class RayPPOTrainer:
     def init_workers(self) -> None:
         """Init resource pool and worker group"""
         self.resource_pool_manager.create_resource_pool()
-        # 定义哪个资源池 上需要运行 哪些类型 的 Worker
+        # 定义哪个资源池 上需要运行哪些类型 的 Worker
         self.resource_pool_to_cls = {pool: {} for pool in self.resource_pool_manager.resource_pool_dict.values()}
         
         # create actor and rollout
@@ -395,7 +404,7 @@ class RayPPOTrainer:
             all_wg.update(spawn_wg)
             # keep the referece of WorkerDict to support ray >= 2.31. Ref: https://github.com/ray-project/ray/pull/45699
             self.wg_dicts.append(wg_dict)
-            
+
         # all_wg 中获取 Critic Worker 的句柄，并存到 self.critic_wg 属性中
         # 通过句柄调用远程 cls 上的 init_model 方法
         if self.use_critic:
@@ -530,7 +539,12 @@ class RayPPOTrainer:
                             gen_baseline_output = self.actor_rollout_wg.generate_sequences(gen_baseline_batch)
 
                             batch = batch.union(gen_baseline_output)
-                            reward_baseline_tensor, _ = self.reward_fn(batch)
+                            if self.tool_usage:
+                                print(f"global_step in reward computation: {self.global_step}")
+                                reward_baseline_tensor, _ = self.reward_fn(batch, step = self.global_step, tool = self.tool_usage)
+                            else:
+                                print(f"No tool usage! global_step in reward computation: {self.global_step}")
+                                reward_baseline_tensor, _ = self.reward_fn(batch)
                             reward_baseline_tensor = reward_baseline_tensor.sum(dim=-1)
 
                             batch.pop(batch_keys=list(gen_baseline_output.batch.keys()))
@@ -551,7 +565,12 @@ class RayPPOTrainer:
                             raise NotImplementedError("Reward model is not supported yet.")
 
                         # we combine with rule-based rm
-                        reward_tensor, reward_metrics = self.reward_fn(batch) # here calling the setted reward functions
+                        if self.tool_usage:
+                            print(f"global_step in reward computation: {self.global_step}")
+                            reward_tensor, reward_metrics = self.reward_fn(batch, step = self.global_step, tool = self.tool_usage)
+                        else:
+                            print(f"No tool usage! global_step in reward computation: {self.global_step}")
+                            reward_tensor, reward_metrics = self.reward_fn(batch) # here calling the setted reward functions
                         batch.batch["token_level_scores"] = reward_tensor
                         reward_metrics = {
                             f"reward/{key}": value for key, value in reduce_metrics(reward_metrics).items()

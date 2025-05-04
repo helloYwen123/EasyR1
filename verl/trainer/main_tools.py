@@ -25,7 +25,8 @@ from .config import PPOConfig
 from .data_loader import create_dataloader
 from .ray_trainer import RayPPOTrainer, ResourcePoolManager, Role
 
-
+import torch
+import gc
 # please make sure main_task is not scheduled on head
 @ray.remote(num_cpus=1)
 class Runner:
@@ -71,37 +72,46 @@ class Runner:
         train_dataloader, val_dataloader = create_dataloader(
             config=config.data, tokenizer=tokenizer, processor=processor
         )
-
-        n = 0
-        import os
-        log_dir = "/home/stud/wxie/EasyR1/logs"
-        os.makedirs(log_dir, exist_ok=True)
-        path = os.path.join(log_dir, "batchSAT.txt")
+        #########################################
+        ## check prompt loading and model inputs#
+        #########################################
+        # n = 0
+        # import os
+        # log_dir = "/home/stud/wxie/EasyR1/logs"
+        # os.makedirs(log_dir, exist_ok=True)
+        # path = os.path.join(log_dir, "batchBLINK.txt")
         
-        for batch in train_dataloader:
-            if n > 0:
-                break
-            print(f"the type of batch: {type(batch)}")
-            print(f"the length of batch: {len(batch)}")
-            print (f"key: {batch.keys()}")
-            with open(path ,"w") as f:
-                f.write(f"batch : {batch}\n")
-            n += 1
+        # for batch in train_dataloader:
+        #     if n > 0:
+        #         break
+        #     print(f"the type of batch: {type(batch)}")
+        #     print(f"the length of batch: {len(batch)}")
+        #     print (f"key: {batch.keys()}")
+        #     with open(path ,"w") as f:
+        #         f.write(f"batch : {batch}\n")
+        #     n += 1
             
-        # trainer = RayPPOTrainer(
-        #     config=config,
-        #     tokenizer=tokenizer,
-        #     processor=processor,
-        #     train_dataloader=train_dataloader,
-        #     val_dataloader=val_dataloader,
-        #     role_worker_mapping=role_worker_mapping,
-        #     resource_pool_manager=resource_pool_manager,
-        #     ray_worker_group_cls=ray_worker_group_cls,
-        #     reward_fn=reward_fn,
-        #     val_reward_fn=val_reward_fn,
-        # )
-        # trainer.init_workers()
-        # trainer.fit()
+        trainer = RayPPOTrainer(
+            config=config,
+            tokenizer=tokenizer,
+            processor=processor,
+            train_dataloader=train_dataloader,
+            val_dataloader=val_dataloader,
+            role_worker_mapping=role_worker_mapping,
+            resource_pool_manager=resource_pool_manager,
+            ray_worker_group_cls=ray_worker_group_cls,
+            reward_fn=reward_fn,
+            val_reward_fn=None, # None
+        )
+        trainer.init_workers()
+        trainer.fit()
+
+        # clear memory
+        if torch.distributed.is_initialized():
+            torch.distributed.destroy_process_group()
+        gc.collect()
+        torch.cuda.empty_cache()
+        
 def main():
     cli_args = OmegaConf.from_cli()
     default_config = OmegaConf.structured(PPOConfig())

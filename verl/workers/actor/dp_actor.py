@@ -195,7 +195,7 @@ class DataParallelPPOActor(BasePPOActor):
         )
         log_probs_lst = []
         if self.rank == 0:
-            micro_batches = tqdm(micro_batches, desc="Compute log probs", position=2)
+            micro_batches = tqdm(micro_batches, desc="Compute log probs ((rollout)responses per GPU / batch_size_per_device for experience)", position=2)
 
         for micro_batch in micro_batches:
             model_inputs = {**micro_batch.batch, **micro_batch.non_tensor_batch}
@@ -225,7 +225,7 @@ class DataParallelPPOActor(BasePPOActor):
         metrics = defaultdict(list)
         for _ in range(self.config.ppo_epochs):
             if self.rank == 0:
-                mini_batches = tqdm(mini_batches, desc="Train mini-batches", position=2)
+                mini_batches = tqdm(mini_batches, desc="Train mini-batches ((rollout)responses per_GPU / per_GPU [update]responses)", position=2)
 
             for mini_batch in mini_batches:
                 gradient_accumulation = (
@@ -233,7 +233,7 @@ class DataParallelPPOActor(BasePPOActor):
                 )
                 micro_batches = mini_batch.split(self.config.micro_batch_size_per_device_for_update)
                 if self.rank == 0:
-                    micro_batches = tqdm(micro_batches, desc="Update policy", position=3)
+                    micro_batches = tqdm(micro_batches, desc="Update policy ((update)responses per_GPU / batch_per_device_for_update)", position=3)
 
                 for micro_batch in micro_batches:
                     model_inputs = {**micro_batch.batch, **micro_batch.non_tensor_batch}

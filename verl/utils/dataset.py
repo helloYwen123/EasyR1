@@ -18,9 +18,10 @@ from collections import defaultdict
 from io import BytesIO
 from typing import Any, Dict, List, Optional, Union
 
+import json
 import numpy as np
 import torch
-from datasets import load_dataset
+from datasets import load_dataset,concatenate_datasets
 from jinja2 import Template
 from PIL import Image
 from PIL.Image import Image as ImageObject
@@ -29,7 +30,7 @@ from transformers import PreTrainedTokenizer, ProcessorMixin
 
 from ..models.transformers.qwen2_vl import get_rope_index
 from . import torch_functional as VF
-
+import yaml
 
 def collate_fn(features: List[Dict[str, Any]]) -> Dict[str, Any]:
     tensors = defaultdict(list)
@@ -95,6 +96,9 @@ class RLHFDataset(Dataset, ImageProcessMixin):
         max_pixels: Optional[int] = None,
         min_pixels: Optional[int] = None,
         filter_overlong_prompts: bool = True,
+        subtasks: Optional[list[str]] = None, # specific for BLINK dataset and CV-Bench
+        dataset_prefix: Optional[str] = None, # specific for BLINK and CV-Bench
+        tools_config: Optional[str] = None, # specific for tools
     ):
         self.tokenizer = tokenizer
         self.processor = processor
@@ -106,20 +110,61 @@ class RLHFDataset(Dataset, ImageProcessMixin):
         self.max_pixels = max_pixels
         self.min_pixels = min_pixels
         self.filter_overlong_prompts = filter_overlong_prompts
-
+        self.data_path = data_path ####
+        self.configuration_file = tools_config ####
+        
         if "@" in data_path:
             data_path, data_split = data_path.split("@")
         else:
             data_split = "train"
-
-        if os.path.isdir(data_path):
-            # when we use dataset builder, we should always refer to the train split
-            self.dataset = load_dataset("parquet", data_dir=data_path, split="train")
-        elif os.path.isfile(data_path):
-            self.dataset = load_dataset("parquet", data_files=data_path, split="train")
+        if not ("BLINK" in data_path or "SAT" in data_path or "CV-Bench" in data_path): # original implementation
+            if os.path.isdir(data_path):
+                # when we use dataset builder, we should always refer to the train split
+                self.dataset = load_dataset("parquet", data_dir=data_path, split="train")
+            elif os.path.isfile(data_path):
+                self.dataset = load_dataset("parquet", data_files=data_path, split="train")
+            else:
+                # load remote dataset from huggingface hub
+                self.dataset = load_dataset(data_path, split=data_split)
         else:
-            # load remote dataset from huggingface hub
-            self.dataset = load_dataset(data_path, split=data_split)
+            if "BLINK" in data_path:
+                all_datasets = []
+                print(f"loading dataset: {data_path}\n")
+                for subtask in subtasks: # because in BLINK there is subtasks(e.g. Counting)
+                    blink_ds = load_dataset(f"{data_path}", f"{subtask}", split="val") # e.g. BLINK-Benchmark/BLINK val
+                    blink_ds = blink_ds.map(lambda x: {"sub_task": subtask})
+                    all_datasets.append(blink_ds)
+                    
+                blink_ds = concatenate_datasets(all_datasets)
+                
+                all_subtasks_json = []
+                for task in subtasks: # here json file should be in correct path
+                    subtask_json_path = f"BLINK_Dataset/{task}/val/{task}_val.json" # only val has ground truth
+                    subtask_json_path = os.path.join(dataset_prefix, subtask_json_path)
+                    
+                    with open(subtask_json_path, 'r') as f: # to obtain the image paths for each QA(saved in json file) 
+                        raw_dataset = json.load(f) 
+                        subtask_json  = [sample for sample in raw_dataset]
+                        
+                    all_subtasks_json.extend(subtask_json)
+
+                self.dataset = blink_ds # converted to be consistent with original setting    
+                self.all_subtasks_json = all_subtasks_json
+                self.dataset_prefix = dataset_prefix
+
+            if "SAT" in data_path:
+                # TODO
+                print(f"Loading dataset: {data_path}\n")
+
+                dataset_json_path = "SAT_subtasks/SAT_Counting.json" # TODO Better
+                full_path = os.path.join(dataset_prefix, dataset_json_path)
+                with open(full_path, 'r') as f:
+                    raw_dataset = json.load(f)
+                self.dataset = raw_dataset  # json format in SAT
+                self.dataset_prefix = dataset_prefix
+
+            if "CV-Bench" in data_path:
+                pass # TODO
 
         self.format_prompt = None
         if format_prompt:
@@ -129,25 +174,68 @@ class RLHFDataset(Dataset, ImageProcessMixin):
         if self.filter_overlong_prompts:
             self.dataset = self.dataset.filter(self._filter_overlong_prompts, desc="Filtering overlong prompts")
 
+    ###################################################################
+    # load selected tooldata from prompt yaml file        
+    def _load_tool_data(self, conf_file):
+        
+        # load config file from path
+        with open(conf_file, "r") as stream:
+            conf = yaml.safe_load(stream)
+        # --- Tool Metadata Filtering Logic ---
+        active_tool_names = conf.get("available_tools", []) # Get the list from YAML
+        full_toolbox_metadata = conf.get("toolbox_metadata", {})
+
+        # Create a dictionary containing only the metadata for active tools
+        filtered_metadata_dict = {
+            tool_name: full_toolbox_metadata[tool_name]
+            for tool_name in active_tool_names
+            if tool_name in full_toolbox_metadata
+        }
+
+        # Warn for missing tools
+        for tool_name in active_tool_names:
+            if tool_name not in full_toolbox_metadata:
+                print(f"Warning: Tool '{tool_name}' listed in available_tools but not found in toolbox_metadata.")
+
+        return active_tool_names, filtered_metadata_dict
+    ###################################################################
+    
     def _build_messages(self, example: Dict[str, Any]) -> List[Dict[str, Any]]:
         prompt_str: str = example[self.prompt_key]
-        if self.format_prompt:
+        if ("BLINK" in self.data_path or "SAT" in self.data_path or "CV-Bench" in self.data_path):
+            image_paths = example["image_paths"]
+            active_tool_names, filtered_metadata_dict = self._load_tool_data(self.configuration_file)
             format_prompt = Template(self.format_prompt.strip())
-            prompt_str = format_prompt.render(content=prompt_str)
-
-        if self.image_key in example:
-            # https://huggingface.co/docs/transformers/en/tasks/image_text_to_text
+            prompt_str = format_prompt.render(question=prompt_str,
+                                              image_paths=image_paths,
+                                              available_tools=active_tool_names,
+                                              toolbox_metadata=filtered_metadata_dict,
+                                              )
             content_list = []
-            for i, content in enumerate(prompt_str.split("<image>")):
-                if i != 0:
+            for i in range(len(image_paths)+1):
+                if i != len(image_paths):
                     content_list.append({"type": "image"})
-
-                if content:
-                    content_list.append({"type": "text", "text": content})
-
+                else:
+                    content_list.append({"type": "text", "text": prompt_str})
             return [{"role": "user", "content": content_list}]
         else:
-            return [{"role": "user", "content": prompt_str}]
+            if self.format_prompt:
+                format_prompt = Template(self.format_prompt.strip())
+                prompt_str = format_prompt.render(content=prompt_str)
+
+            if self.image_key in example:
+                # https://huggingface.co/docs/transformers/en/tasks/image_text_to_text
+                content_list = []
+                for i, content in enumerate(prompt_str.split("<image>")):
+                    if i != 0:
+                        content_list.append({"type": "image"})
+
+                    if content:
+                        content_list.append({"type": "text", "text": content})
+
+                return [{"role": "user", "content": content_list}]
+            else:
+                return [{"role": "user", "content": prompt_str}]
 
     def _filter_overlong_prompts(self, example: Dict[str, Any]) -> bool:
         messages = self._build_messages(example)
@@ -158,11 +246,63 @@ class RLHFDataset(Dataset, ImageProcessMixin):
 
     def __len__(self):
         return len(self.dataset)
+    
+######################################################################
+    ### Adapt to `Blink` dataset for post-processing
+    ### load multi-images; add <image> tags into prompts; add image_paths for tools usage
+    def _blink_format(self, example, json_file):
+        # collect Un-None images
+        images = [example[k] for k in ['image_1', 'image_2', 'image_3', 'image_4'] if example.get(k) is not None]
+        num_images = len(images)
 
+        # add <image> tag into original prompts
+        full_prompt = example["prompt"]
+        for sample in json_file:
+            if sample["idx"] == example["idx"]:
+                image_paths = [os.path.join(self.dataset_prefix, img_path) for img_path in sample["image_paths"]]
+        answer = example["answer"].strip("()")
+        return {
+            "images": images,
+            "problem": full_prompt,
+            "answer": answer,
+            "idx": example["idx"],
+            "image_paths": image_paths
+        }
+    def _sat_format(self, example):
+        image_paths = [os.path.join(self.dataset_prefix, path) for path in example["images"]]
+        images = [Image.open(path) for path in image_paths]
+        full_prompt = example["messages"][0]["content"].strip()
+        full_prompt = full_prompt.replace("<image> Answer in natural language. ", "")
+        answer = example["messages"][1]["content"].strip()
+        idx = os.path.splitext(os.path.basename(example["images"][0]))[0]  # image name as index
+        
+        return {
+            "images": images,
+            "problem": full_prompt,
+            "answer": answer,
+            "idx": idx,
+            "image_paths" : image_paths
+        }
+    def _cv_bench_format(self, example):
+        # TODO
+        pass
+######################################################################
+    
     def __getitem__(self, index):
         example: dict = self.dataset[index]
+        
+        ###
+        if "BLINK" in self.data_path:
+            example = self._blink_format(example, self.all_subtasks_json)
+        if "SAT" in self.data_path:
+            example = self._sat_format(example)
+        if "CV-Bench" in self.data_path:
+            pass #TODO
+        ###
+        
         messages = self._build_messages(example)
-
+        example["message"] = messages # for debug
+        
         if self.image_key in example:
             prompt = self.processor.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
             images = [self.process_image(image) for image in example.pop(self.image_key)]

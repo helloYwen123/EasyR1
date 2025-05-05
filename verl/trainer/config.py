@@ -49,6 +49,9 @@ class DataConfig:
     max_pixels: int = 4194304
     min_pixels: int = 262144
     filter_overlong_prompts: bool = True
+    subtasks: Optional[list[str]] = None # specific for BLINK dataset and CV-Bench
+    dataset_prefix: Optional[str] = None # specifc for BLINK and CV-Bench
+    tools_config: Optional[str] = None # Tool Thinker
 
     def post_init(self):
         if self.format_prompt is not None:
